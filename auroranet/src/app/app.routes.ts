@@ -1,3 +1,61 @@
 import { Routes } from '@angular/router';
 
-export const routes: Routes = [];
+export const routes: Routes = [
+  // Default route - redirect to login
+  {
+    path: '',
+    redirectTo: '/auth/login',
+    pathMatch: 'full'
+  },
+
+  // Authentication routes
+  {
+    path: 'auth',
+    children: [
+      {
+        path: 'login',
+        loadComponent: () => import('./auth/login/login').then(m => m.Login)
+      },
+      {
+        path: 'register',
+        loadComponent: () => import('./auth/register/register').then(m => m.Register)
+      }
+    ]
+  },
+
+  // Admin routes (will add guards in task-15)
+  {
+    path: 'admin',
+    children: [
+      {
+        path: 'dashboard',
+        loadComponent: () => import('./admin/dashboard/dashboard').then(m => m.Dashboard)
+      },
+      {
+        path: 'events',
+        loadComponent: () => import('./admin/events/events').then(m => m.Events)
+      }
+    ]
+  },
+
+  // User routes
+  {
+    path: 'user',
+    children: [
+      {
+        path: 'events',
+        loadComponent: () => import('./user/events/events').then(m => m.Events)
+      },
+      {
+        path: 'dashboard',
+        loadComponent: () => import('./user/dashboard/dashboard').then(m => m.Dashboard)
+      }
+    ]
+  },
+
+  // 404 Not Found route
+  {
+    path: '**',
+    loadComponent: () => import('./not-found/not-found').then(m => m.NotFound)
+  }
+];
