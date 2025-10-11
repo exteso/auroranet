@@ -37,6 +37,10 @@ export const routes: Routes = [
       {
         path: 'events',
         loadComponent: () => import('./admin/events/events').then(m => m.Events)
+      },
+      {
+        path: 'events/create',
+        loadComponent: () => import('./admin/event-create/event-create').then(m => m.EventCreate)
       }
     ]
   },

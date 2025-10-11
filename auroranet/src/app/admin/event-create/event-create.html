@@ -1,0 +1,143 @@
+<div class="event-create-container">
+  <h2>Create New Event</h2>
+
+  <!-- Success Message -->
+  <div *ngIf="successMessage" class="alert alert-success">
+    {{ successMessage }}
+  </div>
+
+  <!-- Error Message -->
+  <div *ngIf="errorMessage" class="alert alert-error">
+    {{ errorMessage }}
+  </div>
+
+  <form [formGroup]="eventForm" (ngSubmit)="onSubmit()" class="event-form">
+    <!-- Title Field -->
+    <div class="form-group">
+      <label for="title">Event Title *</label>
+      <input
+        type="text"
+        id="title"
+        formControlName="title"
+        placeholder="Enter event title"
+        [class.error]="title?.invalid && title?.touched"
+      />
+      <div *ngIf="title?.invalid && title?.touched" class="error-message">
+        <span *ngIf="title?.errors?.['required']">Title is required</span>
+        <span *ngIf="title?.errors?.['minlength']">Title must be at least 3 characters</span>
+      </div>
+    </div>
+
+    <!-- Description Field -->
+    <div class="form-group">
+      <label for="description">Description</label>
+      <textarea
+        id="description"
+        formControlName="description"
+        placeholder="Enter event description (optional)"
+        rows="4"
+      ></textarea>
+    </div>
+
+    <!-- Date Field -->
+    <div class="form-group">
+      <label for="date">Event Date *</label>
+      <input
+        type="date"
+        id="date"
+        formControlName="date"
+        [min]="minDate"
+        [max]="maxDate"
+        [class.error]="date?.invalid && date?.touched"
+      />
+      <div *ngIf="date?.invalid && date?.touched" class="error-message">
+        <span *ngIf="date?.errors?.['required']">Date is required</span>
+        <span *ngIf="date?.errors?.['dateOutOfRange']">
+          Date must be within the next 2 months
+        </span>
+      </div>
+      <small class="help-text">Events can be scheduled within the next 2 months</small>
+    </div>
+
+    <!-- Time Slot Field -->
+    <div class="form-group">
+      <label>Time Slot *</label>
+      <div class="radio-group">
+        <label class="radio-label">
+          <input
+            type="radio"
+            formControlName="timeSlot"
+            [value]="TimeSlot.MORNING"
+          />
+          <span>Morning (09:00 - 12:00)</span>
+        </label>
+        <label class="radio-label">
+          <input
+            type="radio"
+            formControlName="timeSlot"
+            [value]="TimeSlot.AFTERNOON"
+          />
+          <span>Afternoon (14:00 - 17:00)</span>
+        </label>
+      </div>
+    </div>
+
+    <!-- Capacity Field -->
+    <div class="form-group">
+      <label for="capacity">Capacity *</label>
+      <input
+        type="number"
+        id="capacity"
+        formControlName="capacity"
+        min="1"
+        max="100"
+        placeholder="Enter maximum capacity"
+        [class.error]="capacity?.invalid && capacity?.touched"
+      />
+      <div *ngIf="capacity?.invalid && capacity?.touched" class="error-message">
+        <span *ngIf="capacity?.errors?.['required']">Capacity is required</span>
+        <span *ngIf="capacity?.errors?.['min']">Capacity must be at least 1</span>
+        <span *ngIf="capacity?.errors?.['max']">Capacity cannot exceed 100</span>
+      </div>
+      <small class="help-text">Maximum number of attendees (1-100)</small>
+    </div>
+
+    <!-- Location Field -->
+    <div class="form-group">
+      <label for="location">Location</label>
+      <input
+        type="text"
+        id="location"
+        formControlName="location"
+        placeholder="Enter event location (optional)"
+      />
+    </div>
+
+    <!-- Form Actions -->
+    <div class="form-actions">
+      <button
+        type="submit"
+        class="btn btn-primary"
+        [disabled]="eventForm.invalid || isSubmitting"
+      >
+        {{ isSubmitting ? 'Creating...' : 'Create Event' }}
+      </button>
+      <button
+        type="button"
+        class="btn btn-secondary"
+        (click)="onReset()"
+        [disabled]="isSubmitting"
+      >
+        Reset
+      </button>
+      <button
+        type="button"
+        class="btn btn-outline"
+        (click)="onCancel()"
+        [disabled]="isSubmitting"
+      >
+        Cancel
+      </button>
+    </div>
+  </form>
+</div>
