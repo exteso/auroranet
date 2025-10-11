@@ -1,1 +1,25 @@
-<p>user dashboard works!</p>
+<h1>My Events</h1>
+
+<div *ngIf="upcomingEvents.length === 0 && pastEvents.length === 0">
+  <p>You have no registered events.</p>
+</div>
+
+<div *ngIf="upcomingEvents.length > 0">
+  <h2>Upcoming Events</h2>
+  <ul>
+    <li *ngFor="let event of upcomingEvents">
+      {{ event.title }} - {{ event.date | date: 'short' }} ({{ event.timeSlot }})
+      <button (click)="cancelRegistration(event.reservationId)">Cancel Registration</button>
+    </li>
+  </ul>
+</div>
+
+<div *ngIf="pastEvents.length > 0">
+  <h2>Past Events</h2>
+  <ul>
+    <li *ngFor="let event of pastEvents">
+      {{ event.title }} - {{ event.date | date: 'short' }} ({{ event.timeSlot }})
+    </li>
+  </ul>
+</div>
+
