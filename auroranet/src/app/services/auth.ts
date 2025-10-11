@@ -9,13 +9,16 @@ import {
   UserCredential
 } from '@angular/fire/auth';
 import { Observable, from } from 'rxjs';
-import { map } from 'rxjs/operators';
+import { map, switchMap } from 'rxjs/operators';
+import { UserService } from './user.service';
+import { UserRole } from '../models/user.model';
 
 @Injectable({
   providedIn: 'root'
 })
 export class AuthService {
   private auth: Auth = inject(Auth);
+  private userService: UserService = inject(UserService);
 
   // Observable of authentication state
   public readonly authState$: Observable<User | null>;
@@ -36,12 +39,21 @@ export class AuthService {
 
   /**
    * Register a new user with email and password
+   * Creates user document in Firestore with default 'guest' role
    * @param email User email
    * @param password User password
-   * @returns Promise with UserCredential
+   * @param role User role (defaults to 'guest')
+   * @returns Observable with UserCredential
    */
-  register(email: string, password: string): Observable<UserCredential> {
-    return from(createUserWithEmailAndPassword(this.auth, email, password));
+  register(email: string, password: string, role: UserRole = 'guest'): Observable<UserCredential> {
+    return from(createUserWithEmailAndPassword(this.auth, email, password)).pipe(
+      switchMap(userCredential => {
+        // Create user document in Firestore
+        return this.userService.createUser(userCredential.user.uid, email, role).pipe(
+          map(() => userCredential)
+        );
+      })
+    );
   }
 
   /**
@@ -78,5 +90,29 @@ export class AuthService {
     return this.authState$.pipe(
       map(user => user !== null)
     );
+  }
+
+  /**
+   * Get current user's role from Firestore
+   * @returns Observable<UserRole | null>
+   */
+  getUserRole(): Observable<UserRole | null> {
+    const currentUser = this.getCurrentUser();
+    if (!currentUser) {
+      return from([null]);
+    }
+    return this.userService.getUserRole(currentUser.uid);
+  }
+
+  /**
+   * Check if current user is admin
+   * @returns Observable<boolean>
+   */
+  isAdmin(): Observable<boolean> {
+    const currentUser = this.getCurrentUser();
+    if (!currentUser) {
+      return from([false]);
+    }
+    return this.userService.isAdmin(currentUser.uid);
   }
 }
