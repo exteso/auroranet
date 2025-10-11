@@ -1,0 +1,117 @@
+<div class="profile-container">
+  <h2>User Profile</h2>
+
+  @if (loadingProfile) {
+    <div class="loading">Loading profile...</div>
+  }
+
+  @if (errorMessage && !loadingProfile) {
+    <div class="error-message">{{ errorMessage }}</div>
+  }
+
+  @if (successMessage) {
+    <div class="success-message">{{ successMessage }}</div>
+  }
+
+  @if (!loadingProfile && currentUser) {
+    <div class="profile-info">
+      <p><strong>Email:</strong> {{ currentUser.email }}</p>
+      <p><strong>Role:</strong> {{ currentUser.role }}</p>
+    </div>
+
+    <form [formGroup]="profileForm" (ngSubmit)="onSubmit()" class="profile-form">
+      <div class="form-group">
+        <label for="displayName">Display Name *</label>
+        <input
+          type="text"
+          id="displayName"
+          formControlName="displayName"
+          [class.invalid]="profileForm.get('displayName')?.invalid && profileForm.get('displayName')?.touched"
+        />
+        @if (profileForm.get('displayName')?.hasError('required') && profileForm.get('displayName')?.touched) {
+          <span class="error">Display name is required</span>
+        }
+        @if (profileForm.get('displayName')?.hasError('minlength') && profileForm.get('displayName')?.touched) {
+          <span class="error">Display name must be at least 2 characters</span>
+        }
+      </div>
+
+      <div class="form-group">
+        <label for="phone">Phone Number</label>
+        <input
+          type="tel"
+          id="phone"
+          formControlName="phone"
+          placeholder="+1234567890"
+          [class.invalid]="profileForm.get('phone')?.invalid && profileForm.get('phone')?.touched"
+        />
+        @if (profileForm.get('phone')?.hasError('pattern') && profileForm.get('phone')?.touched) {
+          <span class="error">Please enter a valid phone number</span>
+        }
+      </div>
+
+      <div class="form-group">
+        <label for="avatarUrl">Avatar URL</label>
+        <input
+          type="url"
+          id="avatarUrl"
+          formControlName="avatarUrl"
+          placeholder="https://example.com/avatar.jpg"
+          [class.invalid]="profileForm.get('avatarUrl')?.invalid && profileForm.get('avatarUrl')?.touched"
+        />
+        @if (profileForm.get('avatarUrl')?.hasError('pattern') && profileForm.get('avatarUrl')?.touched) {
+          <span class="error">Please enter a valid URL (http:// or https://)</span>
+        }
+      </div>
+
+      <div class="form-section">
+        <h3>Preferences</h3>
+
+        <div class="form-group checkbox-group">
+          <label>
+            <input
+              type="checkbox"
+              formControlName="emailNotifications"
+            />
+            <span>Receive email notifications</span>
+          </label>
+        </div>
+
+        <div class="form-group">
+          <label for="language">Language *</label>
+          <select id="language" formControlName="language">
+            <option value="en">English</option>
+            <option value="es">Español</option>
+            <option value="fr">Français</option>
+            <option value="de">Deutsch</option>
+            <option value="it">Italiano</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="timezone">Timezone *</label>
+          <select id="timezone" formControlName="timezone">
+            <option value="UTC">UTC</option>
+            <option value="America/New_York">Eastern Time (US)</option>
+            <option value="America/Chicago">Central Time (US)</option>
+            <option value="America/Denver">Mountain Time (US)</option>
+            <option value="America/Los_Angeles">Pacific Time (US)</option>
+            <option value="Europe/London">London</option>
+            <option value="Europe/Paris">Paris</option>
+            <option value="Asia/Tokyo">Tokyo</option>
+          </select>
+        </div>
+      </div>
+    </form>
+  }
+
+  <div class="form-actions">
+    <button type="submit" [disabled]="profileForm.invalid || loading" class="btn-primary">
+      {{ loading ? 'Saving...' : 'Save Changes' }}
+    </button>
+    <button type="button" (click)="onLogout()" class="btn-logout">
+      Logout
+    </button>
+  </div>
+
+</div>

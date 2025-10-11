@@ -4,6 +4,7 @@ import {
   doc,
   getDoc,
   setDoc,
+  updateDoc,
   DocumentReference,
   DocumentSnapshot
 } from '@angular/fire/firestore';
@@ -29,6 +30,14 @@ export class UserService {
       uid,
       email,
       role,
+      displayName: email.split('@')[0], // Default display name from email
+      avatarUrl: '',
+      phone: '',
+      preferences: {
+        emailNotifications: true,
+        language: 'en',
+        timezone: 'UTC'
+      },
       createdAt: new Date(),
       updatedAt: new Date()
     };
@@ -77,6 +86,27 @@ export class UserService {
   isAdmin(uid: string): Observable<boolean> {
     return this.getUserRole(uid).pipe(
       map(role => role === 'admin')
+    );
+  }
+
+  /**
+   * Update user profile fields in Firestore
+   * @param uid User ID
+   * @param profileData Partial user data to update
+   * @returns Observable<void>
+   */
+  updateUserProfile(uid: string, profileData: Partial<UserDocument>): Observable<void> {
+    const userRef = doc(this.firestore, `users/${uid}`);
+    const updateData = {
+      ...profileData,
+      updatedAt: new Date()
+    };
+
+    return from(updateDoc(userRef, updateData)).pipe(
+      catchError(error => {
+        console.error('Error updating user profile:', error);
+        throw error;
+      })
     );
   }
 }
