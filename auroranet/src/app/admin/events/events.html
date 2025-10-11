@@ -6,7 +6,153 @@
     </a>
   </div>
 
-  <div class="events-list">
-    <p>Event list will be displayed here (Task-19)</p>
+  <!-- Error Message -->
+  <div *ngIf="errorMessage" class="alert alert-error">
+    {{ errorMessage }}
+  </div>
+
+  <!-- Loading State -->
+  <div *ngIf="isLoading" class="loading-state">
+    <p>Loading events...</p>
+  </div>
+
+  <!-- Empty State -->
+  <div *ngIf="!isLoading && events.length === 0" class="empty-state">
+    <p>No events found. Create your first event to get started!</p>
+    <a routerLink="/admin/events/create" class="btn btn-primary">
+      + Create New Event
+    </a>
+  </div>
+
+  <!-- Events List -->
+  <div *ngIf="!isLoading && events.length > 0" class="events-list">
+    <div class="event-card" *ngFor="let event of events">
+      <div class="event-header">
+        <div class="event-title-section">
+          <h3>{{ event.title }}</h3>
+          <span class="status-badge" [ngClass]="getStatusClass(event.status)">
+            {{ event.status }}
+          </span>
+        </div>
+        <div class="event-date">
+          {{ formatDate(event.date) }}
+        </div>
+      </div>
+
+      <div class="event-details">
+        <div class="detail-item">
+          <span class="label">Time:</span>
+          <span class="value">{{ getTimeSlot(event) }}</span>
+        </div>
+        <div class="detail-item">
+          <span class="label">Capacity:</span>
+          <span class="value">
+            {{ event.registeredCount }}/{{ event.capacity }}
+            <span *ngIf="event.registeredCount >= event.capacity" class="full-indicator">(Full)</span>
+          </span>
+        </div>
+        <div class="detail-item" *ngIf="event.location">
+          <span class="label">Location:</span>
+          <span class="value">{{ event.location }}</span>
+        </div>
+        <div class="detail-item full-width" *ngIf="event.description">
+          <span class="label">Description:</span>
+          <span class="value">{{ event.description }}</span>
+        </div>
+      </div>
+
+      <div class="event-actions">
+        <button
+          class="btn btn-secondary btn-sm"
+          (click)="viewRegistrations(event)"
+          [disabled]="event.registeredCount === 0"
+        >
+          View Registrations ({{ event.registeredCount }})
+        </button>
+        <button
+          class="btn btn-info btn-sm"
+          disabled
+          title="Edit functionality coming soon"
+        >
+          Edit
+        </button>
+        <button
+          class="btn btn-outline btn-sm"
+          (click)="confirmDelete(event)"
+          [disabled]="isEventPast(event)"
+        >
+          Delete
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Delete Confirmation Modal -->
+<div *ngIf="eventToDelete" class="modal-overlay" (click)="cancelDelete()">
+  <div class="modal-content" (click)="$event.stopPropagation()">
+    <h3>Confirm Delete</h3>
+    <p>Are you sure you want to delete the event "<strong>{{ eventToDelete.title }}</strong>"?</p>
+    <p class="warning-text">
+      <strong>Warning:</strong> This action cannot be undone. All reservations for this event will remain in the database.
+    </p>
+    <div class="modal-actions">
+      <button
+        class="btn btn-danger"
+        (click)="deleteEvent()"
+        [disabled]="isDeleting"
+      >
+        {{ isDeleting ? 'Deleting...' : 'Delete Event' }}
+      </button>
+      <button
+        class="btn btn-outline"
+        (click)="cancelDelete()"
+        [disabled]="isDeleting"
+      >
+        Cancel
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Registrations Modal -->
+<div *ngIf="selectedEvent" class="modal-overlay" (click)="closeRegistrations()">
+  <div class="modal-content modal-large" (click)="$event.stopPropagation()">
+    <h3>Registrations for "{{ selectedEvent.title }}"</h3>
+    <p class="modal-subtitle">
+      {{ formatDate(selectedEvent.date) }} - {{ getTimeSlot(selectedEvent) }}
+    </p>
+
+    <!-- Loading Registrations -->
+    <div *ngIf="loadingRegistrations" class="loading-state">
+      <p>Loading registrations...</p>
+    </div>
+
+    <!-- Registrations List -->
+    <div *ngIf="!loadingRegistrations && eventRegistrations.length > 0" class="registrations-list">
+      <div class="registration-item" *ngFor="let reservation of eventRegistrations; let i = index">
+        <div class="registration-number">{{ i + 1 }}</div>
+        <div class="registration-details">
+          <div class="registration-name">
+            {{ reservation.userDisplayName || 'N/A' }}
+          </div>
+          <div class="registration-email">{{ reservation.userEmail }}</div>
+          <div class="registration-notes" *ngIf="reservation.notes">
+            <strong>Notes:</strong> {{ reservation.notes }}
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Empty State -->
+    <div *ngIf="!loadingRegistrations && eventRegistrations.length === 0" class="empty-state">
+      <p>No confirmed registrations for this event.</p>
+    </div>
+
+    <div class="modal-actions">
+      <button class="btn btn-primary" (click)="closeRegistrations()">
+        Close
+      </button>
+    </div>
   </div>
 </div>

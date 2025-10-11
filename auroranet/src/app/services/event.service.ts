@@ -51,6 +51,18 @@ export class EventService {
   }
 
   /**
+   * Convert Firestore Timestamp fields to JavaScript Date objects
+   */
+  private convertTimestamps(data: any): EventDocument {
+    return {
+      ...data,
+      date: data.date?.toDate ? data.date.toDate() : data.date,
+      createdAt: data.createdAt?.toDate ? data.createdAt.toDate() : data.createdAt,
+      updatedAt: data.updatedAt?.toDate ? data.updatedAt.toDate() : data.updatedAt
+    } as EventDocument;
+  }
+
+  /**
    * Create a new event
    * Admin only operation
    * @param eventData Event creation data
@@ -114,10 +126,10 @@ export class EventService {
 
     return from(getDocs(eventsQuery)).pipe(
       map(snapshot => {
-        return snapshot.docs.map(doc => ({
+        return snapshot.docs.map(doc => this.convertTimestamps({
           id: doc.id,
           ...doc.data()
-        } as EventDocument));
+        }));
       }),
       catchError(error => {
         console.error('Error getting events:', error);
@@ -137,10 +149,10 @@ export class EventService {
     return from(getDoc(eventRef)).pipe(
       map(docSnapshot => {
         if (docSnapshot.exists()) {
-          return {
+          return this.convertTimestamps({
             id: docSnapshot.id,
             ...docSnapshot.data()
-          } as EventDocument;
+          });
         }
         return null;
       }),
@@ -160,7 +172,7 @@ export class EventService {
     const eventRef = doc(this.firestore, `events/${eventId}`);
 
     return docData(eventRef, { idField: 'id' }).pipe(
-      map(data => data as EventDocument),
+      map(data => data ? this.convertTimestamps(data) : null),
       catchError(error => {
         console.error('Error in event stream:', error);
         return of(null);
@@ -197,7 +209,7 @@ export class EventService {
     const eventsQuery = query(this.eventsCollection, ...constraints);
 
     return collectionData(eventsQuery, { idField: 'id' }).pipe(
-      map(data => data as EventDocument[]),
+      map(data => data.map(item => this.convertTimestamps(item))),
       catchError(error => {
         console.error('Error in events stream:', error);
         return of([]);
@@ -243,7 +255,10 @@ export class EventService {
           throw new Error('Event not found');
         }
 
-        const event = docSnapshot.data() as EventDocument;
+        const event = this.convertTimestamps({
+          id: docSnapshot.id,
+          ...docSnapshot.data()
+        });
         const newStatus = count >= event.capacity ? EventStatus.FULL : EventStatus.SCHEDULED;
 
         return { newStatus };
@@ -311,10 +326,10 @@ export class EventService {
 
     return from(getDocs(eventsQuery)).pipe(
       map(snapshot => {
-        return snapshot.docs.map(doc => ({
+        return snapshot.docs.map(doc => this.convertTimestamps({
           id: doc.id,
           ...doc.data()
-        } as EventDocument));
+        }));
       }),
       catchError(error => {
         console.error('Error getting events by admin:', error);
