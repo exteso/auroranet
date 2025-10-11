@@ -1,4 +1,6 @@
 import { Routes } from '@angular/router';
+import { authGuard } from './guards/auth-guard';
+import { adminGuard } from './guards/admin-guard';
 
 export const routes: Routes = [
   // Default route - redirect to login
@@ -23,9 +25,10 @@ export const routes: Routes = [
     ]
   },
 
-  // Admin routes (will add guards in task-15)
+  // Admin routes (protected by adminGuard)
   {
     path: 'admin',
+    canActivate: [adminGuard],
     children: [
       {
         path: 'dashboard',
@@ -38,9 +41,10 @@ export const routes: Routes = [
     ]
   },
 
-  // User routes
+  // User routes (protected by authGuard)
   {
     path: 'user',
+    canActivate: [authGuard],
     children: [
       {
         path: 'events',

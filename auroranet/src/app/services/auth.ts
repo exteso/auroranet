@@ -9,6 +9,7 @@ import {
   UserCredential
 } from '@angular/fire/auth';
 import { Observable, from } from 'rxjs';
+import { map } from 'rxjs/operators';
 
 @Injectable({
   providedIn: 'root'
@@ -18,11 +19,9 @@ export class AuthService {
 
   // Observable of authentication state
   public readonly authState$: Observable<User | null>;
-  public readonly currentUser: User | null;
 
   constructor() {
     this.authState$ = authState(this.auth);
-    this.currentUser = this.auth.currentUser;
   }
 
   /**
@@ -62,10 +61,22 @@ export class AuthService {
   }
 
   /**
-   * Check if user is authenticated
+   * Check if user is authenticated (synchronous)
+   * Note: May return false during initial Firebase auth state restoration
    * @returns boolean
    */
   isAuthenticated(): boolean {
     return this.auth.currentUser !== null;
+  }
+
+  /**
+   * Check if user is authenticated (asynchronous, waits for Firebase to initialize)
+   * Use this in route guards to properly handle auth state restoration
+   * @returns Observable<boolean>
+   */
+  isAuthenticatedAsync(): Observable<boolean> {
+    return this.authState$.pipe(
+      map(user => user !== null)
+    );
   }
 }
