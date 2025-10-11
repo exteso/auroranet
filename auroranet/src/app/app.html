@@ -1,7 +1,12 @@
-<a href="/admin/dashboard">Admin dashboard</a> |
-<a href="/user/dashboard">User dashboard</a> |
-<a href="/admin/events">Admin events</a> |
-<a href="/user/events">User events</a> |
-<a href="/user/calendar">User calendar</a> |
-<a href="/user/profile">User profile</a>
+<nav class="main-nav">
+  <button class="hamburger-icon" (click)="toggleMenu()">☰</button>
+  <div class="nav-links" [class.open]="isMenuOpen">
+    <a href="/admin/dashboard">Admin dashboard</a>
+   <a href="/admin/events">Admin events</a> | 
+    <a href="/user/dashboard">User dashboard</a>
+    <a href="/user/events">User events</a>
+    <a href="/user/calendar">User calendar</a> |
+    <a href="/user/profile">User profile</a>
+  </div>
+</nav>
 <router-outlet />

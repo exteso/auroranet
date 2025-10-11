@@ -1,0 +1,39 @@
+.cal-header-container {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.cal-header-container h3 {
+  margin: 0;
+}
+
+.cal-header-container .btn-group {
+  display: flex;
+  gap: 5px;
+}
+
+.cal-header-container .btn {
+  padding: 8px 12px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  cursor: pointer;
+  background-color: #f0f0f0;
+}
+
+@media (max-width: 768px) {
+  .cal-header-container {
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .cal-header-container .btn-group {
+    width: 100%;
+    justify-content: space-around;
+  }
+
+  .cal-header-container .btn {
+    flex: 1;
+  }
+}
