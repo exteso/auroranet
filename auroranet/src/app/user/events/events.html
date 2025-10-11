@@ -1,1 +1,209 @@
-<p>user events works!</p>
+<div class="events-container">
+  <div class="page-header">
+    <h2>Browse Events</h2>
+    <p class="subtitle">Discover and register for upcoming events</p>
+  </div>
+
+  <!-- Filter Controls -->
+  <div class="filter-section">
+    <form [formGroup]="filterForm" class="filter-form">
+      <div class="filter-group">
+        <label for="startDate">From Date</label>
+        <input
+          type="date"
+          id="startDate"
+          formControlName="startDate"
+          [min]="minDate"
+          [max]="maxDate"
+        />
+      </div>
+
+      <div class="filter-group">
+        <label for="endDate">To Date</label>
+        <input
+          type="date"
+          id="endDate"
+          formControlName="endDate"
+          [min]="minDate"
+          [max]="maxDate"
+        />
+      </div>
+
+      <div class="filter-group">
+        <label for="timeSlot">Time Slot</label>
+        <select id="timeSlot" formControlName="timeSlot">
+          <option value="all">All Time Slots</option>
+          <option [value]="TimeSlot.MORNING">Morning (09:00 - 12:00)</option>
+          <option [value]="TimeSlot.AFTERNOON">Afternoon (14:00 - 17:00)</option>
+        </select>
+      </div>
+
+      <div class="filter-actions">
+        <button type="button" class="btn btn-outline btn-sm" (click)="resetFilters()">
+          Reset Filters
+        </button>
+      </div>
+    </form>
+
+    <div class="results-count" *ngIf="!isLoading">
+      Showing {{ filteredEvents.length }} event<span *ngIf="filteredEvents.length !== 1">s</span>
+    </div>
+  </div>
+
+  <!-- Success Message -->
+  <div *ngIf="successMessage" class="alert alert-success">
+    {{ successMessage }}
+  </div>
+
+  <!-- Error Message -->
+  <div *ngIf="errorMessage" class="alert alert-error">
+    {{ errorMessage }}
+  </div>
+
+  <!-- Loading State -->
+  <div *ngIf="isLoading" class="loading-state">
+    <p>Loading events...</p>
+  </div>
+
+  <!-- Empty State -->
+  <div *ngIf="!isLoading && filteredEvents.length === 0" class="empty-state">
+    <p>No events found matching your criteria.</p>
+    <p class="help-text">Try adjusting your filters or check back later for new events!</p>
+  </div>
+
+  <!-- Events Grid -->
+  <div *ngIf="!isLoading && filteredEvents.length > 0" class="events-grid">
+    <div class="event-card" *ngFor="let event of filteredEvents">
+      <div class="event-card-header">
+        <h3>{{ event.title }}</h3>
+        <div class="badges">
+          <span class="availability-badge registered" *ngIf="isUserRegistered(event)">
+            Already Registered
+          </span>
+          <span class="availability-badge" *ngIf="!isUserRegistered(event) && !isEventFull(event)">
+            Available
+          </span>
+          <span class="availability-badge full" *ngIf="!isUserRegistered(event) && isEventFull(event)">
+            FULL
+          </span>
+        </div>
+      </div>
+
+      <div class="event-date-time">
+        <div class="date-info">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+            <line x1="16" y1="2" x2="16" y2="6"></line>
+            <line x1="8" y1="2" x2="8" y2="6"></line>
+            <line x1="3" y1="10" x2="21" y2="10"></line>
+          </svg>
+          <span>{{ formatDate(event.date) }}</span>
+        </div>
+        <div class="time-info">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"></circle>
+            <polyline points="12 6 12 12 16 14"></polyline>
+          </svg>
+          <span>{{ getTimeSlot(event) }}</span>
+        </div>
+      </div>
+
+      <p *ngIf="event.description" class="event-description">
+        {{ event.description }}
+      </p>
+
+      <div class="event-details">
+        <div class="detail-item">
+          <span class="label">Location:</span>
+          <span class="value">{{ event.location || 'TBD' }}</span>
+        </div>
+        <div class="detail-item">
+          <span class="label">Available Slots:</span>
+          <span class="value" [class.low-slots]="getAvailableSlots(event) <= 5 && !isEventFull(event)">
+            {{ getAvailableSlots(event) }} / {{ event.capacity }}
+          </span>
+        </div>
+      </div>
+
+      <div class="event-actions">
+        <button
+          *ngIf="!isUserRegistered(event)"
+          class="btn btn-primary btn-full-width"
+          (click)="showRegisterModal(event)"
+          [disabled]="isEventFull(event)"
+        >
+          {{ isEventFull(event) ? 'Event Full' : 'Register Now' }}
+        </button>
+        <button
+          *ngIf="isUserRegistered(event)"
+          class="btn btn-cancel btn-full-width"
+          (click)="showCancelModal(event)"
+        >
+          Cancel Registration
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Registration Confirmation Modal -->
+  <div *ngIf="eventToRegister" class="modal-overlay" (click)="cancelRegisterModal()">
+    <div class="modal-content" (click)="$event.stopPropagation()">
+      <h3>Confirm Registration</h3>
+      <p>
+        Are you sure you want to register for
+        <strong>"{{ eventToRegister.title }}"</strong>?
+      </p>
+      <div class="modal-details">
+        <p><strong>Date:</strong> {{ formatDate(eventToRegister.date) }}</p>
+        <p><strong>Time:</strong> {{ getTimeSlot(eventToRegister) }}</p>
+        <p><strong>Location:</strong> {{ eventToRegister.location || 'TBD' }}</p>
+      </div>
+      <div class="modal-actions">
+        <button
+          class="btn btn-primary"
+          (click)="confirmRegistration()"
+          [disabled]="isRegistering"
+        >
+          {{ isRegistering ? 'Registering...' : 'Confirm Registration' }}
+        </button>
+        <button
+          class="btn btn-outline"
+          (click)="cancelRegisterModal()"
+          [disabled]="isRegistering"
+        >
+          Cancel
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Cancellation Confirmation Modal -->
+  <div *ngIf="eventToCancel" class="modal-overlay" (click)="cancelCancelModal()">
+    <div class="modal-content" (click)="$event.stopPropagation()">
+      <h3>Cancel Registration</h3>
+      <p>
+        Are you sure you want to cancel your registration for
+        <strong>"{{ eventToCancel.title }}"</strong>?
+      </p>
+      <p class="warning-text">
+        <strong>Note:</strong> Cancellations within 24 hours of the event are not allowed.
+      </p>
+      <div class="modal-actions">
+        <button
+          class="btn btn-danger"
+          (click)="confirmCancellation()"
+          [disabled]="isCancelling"
+        >
+          {{ isCancelling ? 'Cancelling...' : 'Confirm Cancellation' }}
+        </button>
+        <button
+          class="btn btn-outline"
+          (click)="cancelCancelModal()"
+          [disabled]="isCancelling"
+        >
+          Keep Registration
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

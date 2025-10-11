@@ -173,23 +173,26 @@ export class ReservationService {
    * @returns Observable<ReservationDocument[]>
    */
   getUserReservations(userId: string, activeOnly: boolean = false): Observable<ReservationDocument[]> {
-    const constraints: QueryConstraint[] = [
+    // Only query by userId to avoid composite index requirement
+    const reservationsQuery = query(
+      this.reservationsCollection,
       where('userId', '==', userId),
       orderBy('createdAt', 'desc')
-    ];
-
-    if (activeOnly) {
-      constraints.push(where('status', '==', ReservationStatus.CONFIRMED));
-    }
-
-    const reservationsQuery = query(this.reservationsCollection, ...constraints);
+    );
 
     return from(getDocs(reservationsQuery)).pipe(
       map(snapshot => {
-        return snapshot.docs.map(doc => ({
+        let reservations = snapshot.docs.map(doc => ({
           id: doc.id,
           ...doc.data()
         } as ReservationDocument));
+
+        // Filter by status client-side if activeOnly
+        if (activeOnly) {
+          reservations = reservations.filter(r => r.status === ReservationStatus.CONFIRMED);
+        }
+
+        return reservations;
       }),
       catchError(error => {
         console.error('Error getting user reservations:', error);
@@ -205,23 +208,27 @@ export class ReservationService {
    * @returns Observable<ReservationDocument[]>
    */
   getEventReservations(eventId: string, activeOnly: boolean = false): Observable<ReservationDocument[]> {
-    const constraints: QueryConstraint[] = [
+    // Only query by eventId to avoid composite index requirement
+    // Filter by status client-side if needed
+    const reservationsQuery = query(
+      this.reservationsCollection,
       where('eventId', '==', eventId),
       orderBy('createdAt', 'asc')
-    ];
-
-    if (activeOnly) {
-      constraints.push(where('status', '==', ReservationStatus.CONFIRMED));
-    }
-
-    const reservationsQuery = query(this.reservationsCollection, ...constraints);
+    );
 
     return from(getDocs(reservationsQuery)).pipe(
       map(snapshot => {
-        return snapshot.docs.map(doc => ({
+        let reservations = snapshot.docs.map(doc => ({
           id: doc.id,
           ...doc.data()
         } as ReservationDocument));
+
+        // Filter by status client-side if activeOnly
+        if (activeOnly) {
+          reservations = reservations.filter(r => r.status === ReservationStatus.CONFIRMED);
+        }
+
+        return reservations;
       }),
       catchError(error => {
         console.error('Error getting event reservations:', error);
@@ -281,19 +288,24 @@ export class ReservationService {
    * @returns Observable<ReservationDocument[]>
    */
   getUserReservationsStream(userId: string, activeOnly: boolean = false): Observable<ReservationDocument[]> {
-    const constraints: QueryConstraint[] = [
+    // Only query by userId to avoid composite index requirement
+    const reservationsQuery = query(
+      this.reservationsCollection,
       where('userId', '==', userId),
       orderBy('createdAt', 'desc')
-    ];
-
-    if (activeOnly) {
-      constraints.push(where('status', '==', ReservationStatus.CONFIRMED));
-    }
-
-    const reservationsQuery = query(this.reservationsCollection, ...constraints);
+    );
 
     return collectionData(reservationsQuery, { idField: 'id' }).pipe(
-      map(data => data as ReservationDocument[]),
+      map(data => {
+        let reservations = data as ReservationDocument[];
+
+        // Filter by status client-side if activeOnly
+        if (activeOnly) {
+          reservations = reservations.filter(r => r.status === ReservationStatus.CONFIRMED);
+        }
+
+        return reservations;
+      }),
       catchError(error => {
         console.error('Error in user reservations stream:', error);
         return of([]);
@@ -308,19 +320,24 @@ export class ReservationService {
    * @returns Observable<ReservationDocument[]>
    */
   getEventReservationsStream(eventId: string, activeOnly: boolean = false): Observable<ReservationDocument[]> {
-    const constraints: QueryConstraint[] = [
+    // Only query by eventId to avoid composite index requirement
+    const reservationsQuery = query(
+      this.reservationsCollection,
       where('eventId', '==', eventId),
       orderBy('createdAt', 'asc')
-    ];
-
-    if (activeOnly) {
-      constraints.push(where('status', '==', ReservationStatus.CONFIRMED));
-    }
-
-    const reservationsQuery = query(this.reservationsCollection, ...constraints);
+    );
 
     return collectionData(reservationsQuery, { idField: 'id' }).pipe(
-      map(data => data as ReservationDocument[]),
+      map(data => {
+        let reservations = data as ReservationDocument[];
+
+        // Filter by status client-side if activeOnly
+        if (activeOnly) {
+          reservations = reservations.filter(r => r.status === ReservationStatus.CONFIRMED);
+        }
+
+        return reservations;
+      }),
       catchError(error => {
         console.error('Error in event reservations stream:', error);
         return of([]);
