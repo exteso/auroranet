@@ -4,12 +4,13 @@ title: Create comprehensive test suite for AuroraNet application
 status: To Do
 assignee: []
 created_date: '2025-10-10 19:00'
+updated_date: '2025-10-11 22:15'
 labels:
   - testing
   - angular
   - firebase
 dependencies: []
-priority: high
+priority: medium
 ---
 
 ## Description
