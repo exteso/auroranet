@@ -1,11 +1,11 @@
 ---
-id: task-1
+id: task-32
 title: Implement user profile editing functionality
 status: Done
 assignee:
   - '@claude'
 created_date: '2025-10-11 14:40'
-updated_date: '2025-10-11 14:47'
+updated_date: '2025-10-11 14:52'
 labels:
   - profile
   - user-management
