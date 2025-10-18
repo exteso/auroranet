@@ -6,7 +6,12 @@ import {
   signOut,
   authState,
   User,
-  UserCredential
+  UserCredential,
+  RecaptchaVerifier,
+  signInWithPhoneNumber,
+  ConfirmationResult,
+  PhoneAuthProvider,
+  linkWithCredential
 } from '@angular/fire/auth';
 import { Observable, from } from 'rxjs';
 import { map, switchMap } from 'rxjs/operators';
@@ -22,6 +27,10 @@ export class AuthService {
 
   // Observable of authentication state
   public readonly authState$: Observable<User | null>;
+
+  // Store reCAPTCHA verifier and confirmation result for phone auth
+  private recaptchaVerifier: RecaptchaVerifier | null = null;
+  private confirmationResult: ConfirmationResult | null = null;
 
   constructor() {
     this.authState$ = authState(this.auth);
@@ -114,5 +123,89 @@ export class AuthService {
       return from([false]);
     }
     return this.userService.isAdmin(currentUser.uid);
+  }
+
+  /**
+   * Set up reCAPTCHA verifier for phone authentication
+   * Must be called before sending phone verification code
+   * @param containerId ID of the HTML element to render reCAPTCHA
+   * @returns RecaptchaVerifier instance
+   */
+  setupRecaptcha(containerId: string): RecaptchaVerifier {
+    this.recaptchaVerifier = new RecaptchaVerifier(this.auth, containerId, {
+      size: 'normal',
+      callback: () => {
+        // reCAPTCHA solved, allow phone auth
+      },
+      'expired-callback': () => {
+        // Reset reCAPTCHA if it expires
+        this.recaptchaVerifier?.clear();
+      }
+    });
+    return this.recaptchaVerifier;
+  }
+
+  /**
+   * Send verification code to phone number
+   * @param phoneNumber Phone number in E.164 format (e.g., +1234567890)
+   * @returns Observable with ConfirmationResult
+   */
+  sendPhoneVerificationCode(phoneNumber: string): Observable<ConfirmationResult> {
+    if (!this.recaptchaVerifier) {
+      throw new Error('reCAPTCHA verifier not initialized. Call setupRecaptcha() first.');
+    }
+
+    return from(signInWithPhoneNumber(this.auth, phoneNumber, this.recaptchaVerifier)).pipe(
+      map(confirmationResult => {
+        this.confirmationResult = confirmationResult;
+        return confirmationResult;
+      })
+    );
+  }
+
+  /**
+   * Verify phone number with the code sent via SMS
+   * Creates user document in Firestore if it's a new user
+   * @param verificationCode 6-digit code sent to phone
+   * @returns Observable with UserCredential
+   */
+  verifyPhoneCode(verificationCode: string): Observable<UserCredential> {
+    if (!this.confirmationResult) {
+      throw new Error('No confirmation result found. Send verification code first.');
+    }
+
+    return from(this.confirmationResult.confirm(verificationCode)).pipe(
+      switchMap(userCredential => {
+        const user = userCredential.user;
+        const phoneNumber = user.phoneNumber || '';
+
+        // Check if user document exists, create if not
+        return this.userService.getUserRole(user.uid).pipe(
+          switchMap(role => {
+            if (role === null) {
+              // New user - create user document with phone number
+              // Use phone number as email placeholder and pass phone as separate param
+              return this.userService.createUser(user.uid, phoneNumber, 'guest', phoneNumber).pipe(
+                map(() => userCredential)
+              );
+            }
+            // Existing user - just return credentials
+            return from([userCredential]);
+          })
+        );
+      })
+    );
+  }
+
+  /**
+   * Clear reCAPTCHA verifier
+   * Call this when component is destroyed or when switching auth methods
+   */
+  clearRecaptcha(): void {
+    if (this.recaptchaVerifier) {
+      this.recaptchaVerifier.clear();
+      this.recaptchaVerifier = null;
+    }
+    this.confirmationResult = null;
   }
 }

@@ -32,7 +32,8 @@ service cloud.firestore {
       // Users can be created during registration
       allow create: if isAuthenticated() && request.auth.uid == userId
                     && request.resource.data.uid == userId
-                    && request.resource.data.email == request.auth.token.email;
+      // Disable email check to allow phone users first login to create user profile
+      //              && request.resource.data.email == request.auth.token.email;
 
       // Users cannot update their own role, but can update other fields
       allow update: if isAuthenticated() && request.auth.uid == userId

@@ -21,18 +21,19 @@ export class UserService {
   /**
    * Create a new user document in Firestore
    * @param uid User ID from Firebase Auth
-   * @param email User email
+   * @param email User email (or phone number if phone auth)
    * @param role User role (admin or guest)
+   * @param phone Optional phone number
    * @returns Observable<void>
    */
-  createUser(uid: string, email: string, role: UserRole = 'guest'): Observable<void> {
+  createUser(uid: string, email: string, role: UserRole = 'guest', phone?: string): Observable<void> {
     const userDoc: UserDocument = {
       uid,
       email,
       role,
-      displayName: email.split('@')[0], // Default display name from email
+      displayName: email.includes('@') ? email.split('@')[0] : email, // Default display name from email or phone
       avatarUrl: '',
-      phone: '',
+      phone: phone || '',
       preferences: {
         emailNotifications: true,
         language: 'en',

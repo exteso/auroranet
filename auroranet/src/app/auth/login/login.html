@@ -3,7 +3,29 @@
     <h1>Login to AuroraNet</h1>
     <p class="auth-subtitle">Access your event management portal</p>
 
-    <form [formGroup]="loginForm" (ngSubmit)="onSubmit()" class="auth-form">
+    <!-- Auth Method Toggle -->
+    <div class="auth-toggle">
+      <button
+        type="button"
+        class="toggle-btn"
+        [class.active]="!usePhoneAuth"
+        (click)="!usePhoneAuth || toggleAuthMethod()"
+      >
+        Email
+      </button>
+      <button
+        type="button"
+        class="toggle-btn"
+        [class.active]="usePhoneAuth"
+        (click)="usePhoneAuth || toggleAuthMethod()"
+      >
+        Phone
+      </button>
+    </div>
+
+    <!-- Email Login Form -->
+    @if (!usePhoneAuth) {
+      <form [formGroup]="loginForm" (ngSubmit)="onSubmit()" class="auth-form">
       <div class="form-group">
         <label for="email">Email</label>
         <input
@@ -52,18 +74,123 @@
         </div>
       }
 
-      <button
-        type="submit"
-        class="btn btn-primary"
-        [disabled]="loginForm.invalid || loading"
-      >
-        @if (loading) {
-          <span>Logging in...</span>
+        <button
+          type="submit"
+          class="btn btn-primary"
+          [disabled]="loginForm.invalid || loading"
+        >
+          @if (loading) {
+            <span>Logging in...</span>
+          } @else {
+            <span>Login</span>
+          }
+        </button>
+      </form>
+    }
+
+    <!-- Phone Login Form -->
+    @if (usePhoneAuth) {
+      <form [formGroup]="phoneForm" class="auth-form">
+        @if (!codeSent) {
+          <!-- Phone Number Input -->
+          <div class="form-group">
+            <label for="phoneNumber">Phone Number</label>
+            <input
+              id="phoneNumber"
+              type="tel"
+              formControlName="phoneNumber"
+              placeholder="+1234567890"
+              [class.invalid]="phoneForm.get('phoneNumber')?.invalid && phoneForm.get('phoneNumber')?.touched"
+            />
+            @if (phoneForm.get('phoneNumber')?.invalid && phoneForm.get('phoneNumber')?.touched) {
+              <div class="error-message">
+                @if (phoneForm.get('phoneNumber')?.errors?.['required']) {
+                  <span>Phone number is required</span>
+                }
+                @if (phoneForm.get('phoneNumber')?.errors?.['pattern']) {
+                  <span>Use international format (e.g., +1234567890)</span>
+                }
+              </div>
+            }
+            <small class="form-hint">Enter your phone number in international format</small>
+          </div>
+
+          <!-- reCAPTCHA Container -->
+          <div id="recaptcha-container" class="recaptcha-container"></div>
+
+          @if (errorMessage) {
+            <div class="alert alert-error">
+              {{ errorMessage }}
+            </div>
+          }
+
+          <button
+            type="button"
+            class="btn btn-primary"
+            [disabled]="phoneForm.get('phoneNumber')?.invalid || loading || !recaptchaRendered"
+            (click)="sendVerificationCode()"
+          >
+            @if (loading) {
+              <span>Sending code...</span>
+            } @else {
+              <span>Send Verification Code</span>
+            }
+          </button>
         } @else {
-          <span>Login</span>
+          <!-- Verification Code Input -->
+          <div class="form-group">
+            <label for="verificationCode">Verification Code</label>
+            <input
+              id="verificationCode"
+              type="text"
+              formControlName="verificationCode"
+              placeholder="000000"
+              maxlength="6"
+              [class.invalid]="phoneForm.get('verificationCode')?.invalid && phoneForm.get('verificationCode')?.touched"
+            />
+            @if (phoneForm.get('verificationCode')?.invalid && phoneForm.get('verificationCode')?.touched) {
+              <div class="error-message">
+                @if (phoneForm.get('verificationCode')?.errors?.['required']) {
+                  <span>Verification code is required</span>
+                }
+                @if (phoneForm.get('verificationCode')?.errors?.['pattern']) {
+                  <span>Enter the 6-digit code</span>
+                }
+              </div>
+            }
+            <small class="form-hint">Enter the 6-digit code sent to your phone</small>
+          </div>
+
+          @if (errorMessage) {
+            <div class="alert alert-error">
+              {{ errorMessage }}
+            </div>
+          }
+
+          <button
+            type="button"
+            class="btn btn-primary"
+            [disabled]="phoneForm.get('verificationCode')?.invalid || loading"
+            (click)="verifyCode()"
+          >
+            @if (loading) {
+              <span>Verifying...</span>
+            } @else {
+              <span>Verify & Login</span>
+            }
+          </button>
+
+          <button
+            type="button"
+            class="btn btn-secondary"
+            (click)="toggleAuthMethod()"
+            [disabled]="loading"
+          >
+            Start Over
+          </button>
         }
-      </button>
-    </form>
+      </form>
+    }
 
     <div class="auth-footer">
       <p>Don't have an account? <a routerLink="/auth/register">Register here</a></p>

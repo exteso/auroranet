@@ -122,3 +122,59 @@
 .auth-footer a:hover {
   text-decoration: underline;
 }
+
+/* Auth method toggle */
+.auth-toggle {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.toggle-btn {
+  flex: 1;
+  padding: 12px;
+  border: 2px solid #ddd;
+  background: white;
+  border-radius: 4px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s;
+  color: #666;
+}
+
+.toggle-btn:hover {
+  border-color: #4CAF50;
+  color: #4CAF50;
+}
+
+.toggle-btn.active {
+  border-color: #4CAF50;
+  background-color: #4CAF50;
+  color: white;
+}
+
+/* reCAPTCHA container */
+.recaptcha-container {
+  margin: 15px 0;
+  display: flex;
+  justify-content: center;
+}
+
+/* Form hints */
+.form-hint {
+  margin-top: 5px;
+  font-size: 12px;
+  color: #999;
+}
+
+/* Secondary button */
+.btn-secondary {
+  background-color: #757575;
+  color: white;
+  margin-top: 10px;
+}
+
+.btn-secondary:hover:not(:disabled) {
+  background-color: #616161;
+}
