@@ -62,6 +62,40 @@
       </div>
     </div>
 
+    <!-- Statistics Card -->
+    <div class="statistics-card">
+      <h4>Event Statistics</h4>
+      <div class="stats-grid">
+        <div class="stat-item">
+          <div class="stat-label">Check-In Status</div>
+          <div class="stat-value">
+            {{ getStatistics().checkedInCount }} / {{ getStatistics().totalConfirmed }}
+            <span class="stat-percent">({{ getStatistics().totalConfirmed > 0 ? ((getStatistics().checkedInCount / getStatistics().totalConfirmed) * 100).toFixed(0) : 0 }}%)</span>
+          </div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-label">Not Checked In</div>
+          <div class="stat-value">{{ getStatistics().notCheckedInCount }}</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-label">Paid</div>
+          <div class="stat-value success">{{ getStatistics().paidCount }}</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-label">Unpaid</div>
+          <div class="stat-value danger">{{ getStatistics().unpaidCount }}</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-label">Pending</div>
+          <div class="stat-value warning">{{ getStatistics().pendingCount }}</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-label">Total Revenue</div>
+          <div class="stat-value">${{ getStatistics().totalRevenue.toFixed(2) }}</div>
+        </div>
+      </div>
+    </div>
+
     <!-- Action Bar -->
     <div class="action-bar">
       <div class="search-filter-group">
@@ -85,9 +119,41 @@
           <option value="CANCELLED">Cancelled</option>
           <option value="WAITLIST">Waitlist</option>
         </select>
+
+        <!-- Check-in Filter -->
+        <select
+          class="filter-select"
+          [(ngModel)]="filterCheckIn"
+          (change)="onFilterChange()"
+        >
+          <option value="ALL">All Check-in</option>
+          <option value="CHECKED_IN">Checked In</option>
+          <option value="NOT_CHECKED_IN">Not Checked In</option>
+        </select>
+
+        <!-- Payment Filter -->
+        <select
+          class="filter-select"
+          [(ngModel)]="filterPayment"
+          (change)="onFilterChange()"
+        >
+          <option value="ALL">All Payments</option>
+          <option value="PAID">Paid</option>
+          <option value="UNPAID">Unpaid</option>
+          <option value="PENDING">Pending</option>
+          <option value="REFUNDED">Refunded</option>
+        </select>
       </div>
 
       <div class="action-buttons">
+        <button
+          *ngIf="selectedParticipants.size > 0"
+          class="btn btn-success"
+          (click)="bulkCheckIn()"
+          [disabled]="isCheckingIn"
+        >
+          Check In Selected ({{ selectedParticipants.size }})
+        </button>
         <button
           class="btn btn-primary"
           (click)="openAddUserModal()"
@@ -128,27 +194,90 @@
       <table *ngIf="filteredParticipants.length > 0" class="participants-table">
         <thead>
           <tr>
+            <th>
+              <input
+                type="checkbox"
+                [checked]="areAllSelected()"
+                (change)="toggleAllSelection()"
+              />
+            </th>
             <th>#</th>
             <th>Name</th>
             <th>Email</th>
-            <th>Phone</th>
             <th>Status</th>
-            <th>Registration Date</th>
+            <th>Check-In</th>
+            <th>Payment</th>
             <th>Actions</th>
           </tr>
         </thead>
         <tbody>
           <tr *ngFor="let participant of filteredParticipants; let i = index">
+            <td>
+              <input
+                type="checkbox"
+                [checked]="isSelected(participant.id)"
+                (change)="toggleParticipantSelection(participant.id)"
+                [disabled]="participant.status !== 'CONFIRMED' || isParticipantCheckedIn(participant)"
+              />
+            </td>
             <td>{{ i + 1 }}</td>
             <td>{{ participant.userDisplayName || 'N/A' }}</td>
             <td>{{ participant.userEmail }}</td>
-            <td>{{ participant.userPhone || 'N/A' }}</td>
             <td>
               <span class="status-badge" [ngClass]="getStatusClass(participant.status)">
                 {{ participant.status }}
               </span>
             </td>
-            <td>{{ participant.registrationDate }}</td>
+            <td>
+              <div class="checkin-cell">
+                <span
+                  *ngIf="isParticipantCheckedIn(participant)"
+                  class="checkin-badge checked-in"
+                  [title]="'Checked in at ' + participant.checkIn!.checkedInAt"
+                >
+                  ✓ Checked In
+                </span>
+                <span *ngIf="!isParticipantCheckedIn(participant)" class="checkin-badge not-checked-in">
+                  Not Checked In
+                </span>
+                <button
+                  *ngIf="!isParticipantCheckedIn(participant) && participant.status === 'CONFIRMED'"
+                  class="btn btn-success btn-xs"
+                  (click)="checkInParticipant(participant)"
+                  [disabled]="isCheckingIn"
+                >
+                  Check In
+                </button>
+                <button
+                  *ngIf="isParticipantCheckedIn(participant)"
+                  class="btn btn-outline btn-xs"
+                  (click)="undoCheckIn(participant)"
+                  [disabled]="isCheckingIn"
+                >
+                  Undo
+                </button>
+              </div>
+            </td>
+            <td>
+              <div class="payment-cell">
+                <span
+                  class="payment-badge"
+                  [ngClass]="getPaymentStatusClass(participant.paymentStatus)"
+                >
+                  {{ getPaymentLabel(participant.paymentStatus) }}
+                </span>
+                <button
+                  *ngIf="participant.paymentStatus !== PaymentStatus.PAID"
+                  class="btn btn-primary btn-xs"
+                  (click)="openPaymentModal(participant)"
+                >
+                  Record Payment
+                </button>
+                <div *ngIf="participant.payment" class="payment-details">
+                  ${{ participant.payment.amount }} - {{ getMethodLabel(participant.payment.method) }}
+                </div>
+              </div>
+            </td>
             <td>
               <button
                 *ngIf="participant.status === 'CONFIRMED'"
@@ -255,6 +384,88 @@
         class="btn btn-outline"
         (click)="cancelRemove()"
         [disabled]="isRemoving"
+      >
+        Cancel
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Payment Modal -->
+<div *ngIf="showPaymentModal" class="modal-overlay" (click)="closePaymentModal()">
+  <div class="modal-content modal-large" (click)="$event.stopPropagation()">
+    <h3>Record Payment</h3>
+    <p class="modal-subtitle">
+      Record payment for {{ participantForPayment?.userDisplayName || participantForPayment?.userEmail }}
+    </p>
+
+    <div class="payment-form">
+      <div class="form-group">
+        <label for="paymentAmount">Amount *</label>
+        <input
+          id="paymentAmount"
+          type="number"
+          class="form-input"
+          [(ngModel)]="paymentAmount"
+          min="0"
+          step="0.01"
+          placeholder="Enter amount"
+          required
+        />
+      </div>
+
+      <div class="form-group">
+        <label for="paymentMethod">Payment Method *</label>
+        <select
+          id="paymentMethod"
+          class="form-input"
+          [(ngModel)]="paymentMethod"
+          required
+        >
+          <option [value]="PaymentMethod.CASH">Cash</option>
+          <option [value]="PaymentMethod.CREDIT_CARD">Credit Card</option>
+          <option [value]="PaymentMethod.DEBIT_CARD">Debit Card</option>
+          <option [value]="PaymentMethod.BANK_TRANSFER">Bank Transfer</option>
+          <option [value]="PaymentMethod.DIGITAL_WALLET">Digital Wallet</option>
+          <option [value]="PaymentMethod.OTHER">Other</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label for="transactionId">Transaction ID (Optional)</label>
+        <input
+          id="transactionId"
+          type="text"
+          class="form-input"
+          [(ngModel)]="paymentTransactionId"
+          placeholder="Enter transaction ID"
+        />
+      </div>
+
+      <div class="form-group">
+        <label for="paymentNotes">Notes (Optional)</label>
+        <textarea
+          id="paymentNotes"
+          class="form-input"
+          [(ngModel)]="paymentNotes"
+          rows="3"
+          placeholder="Additional payment notes"
+        ></textarea>
+      </div>
+    </div>
+
+    <div class="modal-actions">
+      <button
+        class="btn btn-primary"
+        (click)="recordPayment()"
+        [disabled]="isProcessingPayment || paymentAmount <= 0"
+      >
+        {{ isProcessingPayment ? 'Processing...' : 'Record Payment' }}
+      </button>
+      <button
+        class="btn btn-outline"
+        (click)="closePaymentModal()"
+        [disabled]="isProcessingPayment"
       >
         Cancel
       </button>

@@ -441,22 +441,15 @@ export class ReservationService {
   ): Observable<void> {
     const reservationRef = doc(this.firestore, `reservations/${reservationId}`);
 
-    // Build payment record, only including optional fields if they have values
     const paymentRecord: PaymentRecord = {
       amount,
       method,
       paidAt: new Date(),
       processedBy: adminUserId,
-      processedByName: adminDisplayName || "UNK"
+      processedByName: adminDisplayName || "UNK",
+      transactionId,
+      notes
     };
-
-    // Only add optional fields if they have values (Firebase doesn't accept undefined)
-    if (transactionId) {
-      paymentRecord.transactionId = transactionId;
-    }
-    if (notes) {
-      paymentRecord.notes = notes;
-    }
 
     return from(updateDoc(reservationRef, {
       payment: paymentRecord,
