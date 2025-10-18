@@ -1,0 +1,263 @@
+<div class="participants-container">
+  <!-- Header with navigation -->
+  <div class="page-header">
+    <div class="header-left">
+      <a routerLink="/admin/events" class="back-link">
+        ← Back to Events
+      </a>
+      <h2>Event Participants</h2>
+    </div>
+  </div>
+
+  <!-- Success Message -->
+  <div *ngIf="successMessage" class="alert alert-success">
+    {{ successMessage }}
+  </div>
+
+  <!-- Error Message -->
+  <div *ngIf="errorMessage" class="alert alert-error">
+    {{ errorMessage }}
+  </div>
+
+  <!-- Loading State -->
+  <div *ngIf="isLoading" class="loading-state">
+    <p>Loading event participants...</p>
+  </div>
+
+  <!-- Event Details and Participant Management -->
+  <div *ngIf="!isLoading && event" class="content-wrapper">
+    <!-- Event Information Card -->
+    <div class="event-info-card">
+      <div class="event-info-header">
+        <h3>{{ event.title }}</h3>
+        <div class="event-meta">
+          <span class="meta-item">
+            <strong>Date:</strong> {{ formatDate(event.date) }}
+          </span>
+          <span class="meta-item">
+            <strong>Time:</strong> {{ getTimeSlot(event) }}
+          </span>
+          <span class="meta-item" *ngIf="event.location">
+            <strong>Location:</strong> {{ event.location }}
+          </span>
+        </div>
+      </div>
+
+      <!-- Capacity Info -->
+      <div class="capacity-info">
+        <div class="capacity-display">
+          <span class="capacity-label">Participants:</span>
+          <span class="capacity-value" [class.at-capacity]="event.registeredCount >= event.capacity">
+            {{ event.registeredCount }} / {{ event.capacity }}
+          </span>
+          <span *ngIf="event.registeredCount >= event.capacity" class="full-badge">Full</span>
+        </div>
+        <div class="capacity-bar">
+          <div
+            class="capacity-fill"
+            [style.width.%]="(event.registeredCount / event.capacity) * 100"
+            [class.full]="event.registeredCount >= event.capacity"
+          ></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Action Bar -->
+    <div class="action-bar">
+      <div class="search-filter-group">
+        <!-- Search Input -->
+        <input
+          type="text"
+          class="search-input"
+          placeholder="Search by name or email..."
+          [(ngModel)]="searchTerm"
+          (input)="onSearchChange()"
+        />
+
+        <!-- Status Filter -->
+        <select
+          class="filter-select"
+          [(ngModel)]="filterStatus"
+          (change)="onFilterChange()"
+        >
+          <option value="ALL">All Statuses</option>
+          <option value="CONFIRMED">Confirmed</option>
+          <option value="CANCELLED">Cancelled</option>
+          <option value="WAITLIST">Waitlist</option>
+        </select>
+      </div>
+
+      <div class="action-buttons">
+        <button
+          class="btn btn-primary"
+          (click)="openAddUserModal()"
+          [disabled]="event.registeredCount >= event.capacity"
+        >
+          + Add Participant
+        </button>
+        <button
+          class="btn btn-secondary"
+          (click)="exportToCSV()"
+          [disabled]="filteredParticipants.length === 0"
+        >
+          Export CSV
+        </button>
+        <button
+          class="btn btn-secondary"
+          (click)="printParticipantList()"
+          [disabled]="filteredParticipants.length === 0"
+        >
+          Print
+        </button>
+      </div>
+    </div>
+
+    <!-- Participants Table -->
+    <div class="participants-table-wrapper">
+      <!-- Empty State -->
+      <div *ngIf="filteredParticipants.length === 0" class="empty-state">
+        <p *ngIf="searchTerm || filterStatus !== 'ALL'">
+          No participants match your search criteria.
+        </p>
+        <p *ngIf="!searchTerm && filterStatus === 'ALL'">
+          No participants registered yet. Click "Add Participant" to manually add users to this event.
+        </p>
+      </div>
+
+      <!-- Participants Table -->
+      <table *ngIf="filteredParticipants.length > 0" class="participants-table">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Name</th>
+            <th>Email</th>
+            <th>Phone</th>
+            <th>Status</th>
+            <th>Registration Date</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let participant of filteredParticipants; let i = index">
+            <td>{{ i + 1 }}</td>
+            <td>{{ participant.userDisplayName || 'N/A' }}</td>
+            <td>{{ participant.userEmail }}</td>
+            <td>{{ participant.userPhone || 'N/A' }}</td>
+            <td>
+              <span class="status-badge" [ngClass]="getStatusClass(participant.status)">
+                {{ participant.status }}
+              </span>
+            </td>
+            <td>{{ participant.registrationDate }}</td>
+            <td>
+              <button
+                *ngIf="participant.status === 'CONFIRMED'"
+                class="btn btn-danger btn-sm"
+                (click)="confirmRemove(participant)"
+              >
+                Remove
+              </button>
+              <span *ngIf="participant.status !== 'CONFIRMED'" class="text-muted">
+                -
+              </span>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Results Count -->
+    <div *ngIf="filteredParticipants.length > 0" class="results-count">
+      Showing {{ filteredParticipants.length }} of {{ participants.length }} participants
+    </div>
+  </div>
+</div>
+
+<!-- Add User Modal -->
+<div *ngIf="showAddUserModal" class="modal-overlay" (click)="closeAddUserModal()">
+  <div class="modal-content modal-large" (click)="$event.stopPropagation()">
+    <h3>Add Participant to Event</h3>
+    <p class="modal-subtitle">
+      Select a user to add to "{{ event?.title }}"
+    </p>
+
+    <!-- User Search -->
+    <div class="modal-search">
+      <input
+        type="text"
+        class="search-input"
+        placeholder="Search users by name, email, or phone..."
+        [(ngModel)]="searchUserTerm"
+        (input)="onUserSearchChange()"
+        autofocus
+      />
+    </div>
+
+    <!-- Users List -->
+    <div class="users-list">
+      <div *ngIf="filteredAvailableUsers.length === 0" class="empty-state">
+        <p *ngIf="searchUserTerm">No users found matching "{{ searchUserTerm }}"</p>
+        <p *ngIf="!searchUserTerm && availableUsers.length === 0">
+          All users are already registered for this event.
+        </p>
+      </div>
+
+      <div
+        *ngFor="let user of filteredAvailableUsers"
+        class="user-item"
+        (click)="addUserToEvent(user)"
+        [class.disabled]="isAddingUser"
+      >
+        <div class="user-info">
+          <div class="user-name">{{ user.displayName || 'N/A' }}</div>
+          <div class="user-email">{{ user.email }}</div>
+          <div class="user-phone" *ngIf="user.phone">{{ user.phone }}</div>
+        </div>
+        <button class="btn btn-sm btn-primary" [disabled]="isAddingUser">
+          {{ isAddingUser ? 'Adding...' : 'Add' }}
+        </button>
+      </div>
+    </div>
+
+    <div class="modal-actions">
+      <button
+        class="btn btn-outline"
+        (click)="closeAddUserModal()"
+        [disabled]="isAddingUser"
+      >
+        Cancel
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Remove Confirmation Modal -->
+<div *ngIf="participantToRemove" class="modal-overlay" (click)="cancelRemove()">
+  <div class="modal-content" (click)="$event.stopPropagation()">
+    <h3>Remove Participant</h3>
+    <p>
+      Are you sure you want to remove
+      <strong>{{ participantToRemove.userDisplayName || participantToRemove.userEmail }}</strong>
+      from this event?
+    </p>
+    <p class="warning-text">
+      This will cancel their reservation and free up a spot for other attendees.
+    </p>
+    <div class="modal-actions">
+      <button
+        class="btn btn-danger"
+        (click)="removeParticipant()"
+        [disabled]="isRemoving"
+      >
+        {{ isRemoving ? 'Removing...' : 'Remove Participant' }}
+      </button>
+      <button
+        class="btn btn-outline"
+        (click)="cancelRemove()"
+        [disabled]="isRemoving"
+      >
+        Cancel
+      </button>
+    </div>
+  </div>
+</div>

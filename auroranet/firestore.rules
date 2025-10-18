@@ -63,12 +63,13 @@ service cloud.firestore {
 
       // Users can create reservations for themselves
       allow create: if isAuthenticated() &&
-                       request.resource.data.userId == request.auth.uid;
+                       (request.resource.data.userId == request.auth.uid || isAdmin());
 
       // Users can update/delete their own reservations
       // Admins can update/delete any reservation
       allow update, delete: if isAuthenticated() &&
                                (request.auth.uid == resource.data.userId || isAdmin());
+                               
     }
   }
 }
