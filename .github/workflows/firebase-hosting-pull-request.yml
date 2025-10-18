@@ -19,3 +19,5 @@ jobs:
           repoToken: ${{ secrets.GITHUB_TOKEN }}
           firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_AURORANET_C0240 }}
           projectId: auroranet-c0240
+          entryPoint: ./auroranet
+
