@@ -1,0 +1,267 @@
+<div class="user-management-container">
+  <div class="page-header">
+    <h1>User Management</h1>
+    <button class="btn btn-primary" (click)="loadUsers()" [disabled]="loading">
+      <span *ngIf="!loading">Refresh</span>
+      <span *ngIf="loading">Loading...</span>
+    </button>
+  </div>
+
+  <!-- Messages -->
+  @if (errorMessage) {
+    <div class="alert alert-error">
+      {{ errorMessage }}
+      <button class="alert-close" (click)="clearMessages()">&times;</button>
+    </div>
+  }
+
+  @if (successMessage) {
+    <div class="alert alert-success">
+      {{ successMessage }}
+      <button class="alert-close" (click)="clearMessages()">&times;</button>
+    </div>
+  }
+
+  <!-- Search and Filters -->
+  <div class="filters-section">
+    <div class="filter-group">
+      <label for="search">Search</label>
+      <input
+        id="search"
+        type="text"
+        [(ngModel)]="searchTerm"
+        (ngModelChange)="applyFilters()"
+        placeholder="Search by name, email, or phone..."
+        class="search-input"
+      />
+    </div>
+
+    <div class="filter-group">
+      <label for="roleFilter">Role</label>
+      <select id="roleFilter" [(ngModel)]="roleFilter" (ngModelChange)="applyFilters()">
+        <option value="all">All Roles</option>
+        <option value="admin">Admin</option>
+        <option value="guest">Guest</option>
+      </select>
+    </div>
+
+    <div class="filter-group checkbox-group">
+      <label>
+        <input
+          type="checkbox"
+          [(ngModel)]="showDisabled"
+          (ngModelChange)="applyFilters()"
+        />
+        Show Disabled Users
+      </label>
+    </div>
+  </div>
+
+  <!-- Users Stats -->
+  <div class="stats-section">
+    <div class="stat-card">
+      <div class="stat-value">{{ users.length }}</div>
+      <div class="stat-label">Total Users</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value">{{ getUserCountByRole('admin') }}</div>
+      <div class="stat-label">Admins</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value">{{ getUserCountByRole('guest') }}</div>
+      <div class="stat-label">Guests</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value">{{ filteredUsers.length }}</div>
+      <div class="stat-label">Filtered Results</div>
+    </div>
+  </div>
+
+  <!-- Users Table -->
+  <div class="table-container">
+    @if (loading && users.length === 0) {
+      <div class="loading-state">
+        <p>Loading users...</p>
+      </div>
+    } @else if (filteredUsers.length === 0) {
+      <div class="empty-state">
+        <p>No users found matching your criteria.</p>
+      </div>
+    } @else {
+      <table class="users-table">
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Email</th>
+            <th>Phone</th>
+            <th>Role</th>
+            <th>Status</th>
+            <th>Registered</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (user of filteredUsers; track user.uid) {
+            <tr [class.disabled-row]="user.disabled">
+              <td>{{ user.displayName || 'N/A' }}</td>
+              <td>{{ user.email }}</td>
+              <td>{{ user.phone || 'N/A' }}</td>
+              <td>
+                <span class="badge" [ngClass]="getRoleBadgeClass(user.role)">
+                  {{ user.role }}
+                </span>
+              </td>
+              <td>
+                <span class="badge" [ngClass]="getStatusBadgeClass(user.disabled)">
+                  {{ user.disabled ? 'Disabled' : 'Active' }}
+                </span>
+              </td>
+              <td>{{ formatDate(user.createdAt) }}</td>
+              <td>
+                <div class="action-buttons">
+                  <button
+                    class="btn btn-sm btn-secondary"
+                    (click)="viewUser(user)"
+                    title="View Details"
+                  >
+                    View
+                  </button>
+                  @if (user.role === 'guest') {
+                    <button
+                      class="btn btn-sm btn-primary"
+                      (click)="updateRole(user, 'admin')"
+                      [disabled]="loading"
+                      title="Promote to Admin"
+                    >
+                      Promote
+                    </button>
+                  } @else {
+                    <button
+                      class="btn btn-sm btn-warning"
+                      (click)="updateRole(user, 'guest')"
+                      [disabled]="loading"
+                      title="Demote to Guest"
+                    >
+                      Demote
+                    </button>
+                  }
+                  <button
+                    class="btn btn-sm"
+                    [ngClass]="user.disabled ? 'btn-success' : 'btn-danger'"
+                    (click)="toggleDisabled(user)"
+                    [disabled]="loading"
+                    [title]="user.disabled ? 'Enable User' : 'Disable User'"
+                  >
+                    {{ user.disabled ? 'Enable' : 'Disable' }}
+                  </button>
+                </div>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    }
+  </div>
+</div>
+
+<!-- User Detail Modal -->
+@if (showUserModal && selectedUser) {
+  <div class="modal-overlay" (click)="closeUserModal()">
+    <div class="modal-content" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h2>User Details</h2>
+        <button class="modal-close" (click)="closeUserModal()">&times;</button>
+      </div>
+
+      <div class="modal-body">
+        <div class="detail-row">
+          <span class="detail-label">User ID:</span>
+          <span class="detail-value">{{ selectedUser.uid }}</span>
+        </div>
+
+        <div class="detail-row">
+          <span class="detail-label">Display Name:</span>
+          <span class="detail-value">{{ selectedUser.displayName || 'N/A' }}</span>
+        </div>
+
+        <div class="detail-row">
+          <span class="detail-label">Email:</span>
+          <span class="detail-value">{{ selectedUser.email }}</span>
+        </div>
+
+        <div class="detail-row">
+          <span class="detail-label">Phone:</span>
+          <span class="detail-value">{{ selectedUser.phone || 'N/A' }}</span>
+        </div>
+
+        <div class="detail-row">
+          <span class="detail-label">Role:</span>
+          <span class="badge" [ngClass]="getRoleBadgeClass(selectedUser.role)">
+            {{ selectedUser.role }}
+          </span>
+        </div>
+
+        <div class="detail-row">
+          <span class="detail-label">Status:</span>
+          <span class="badge" [ngClass]="getStatusBadgeClass(selectedUser.disabled)">
+            {{ selectedUser.disabled ? 'Disabled' : 'Active' }}
+          </span>
+        </div>
+
+        <div class="detail-row">
+          <span class="detail-label">Registered:</span>
+          <span class="detail-value">{{ formatDate(selectedUser.createdAt) }}</span>
+        </div>
+
+        <div class="detail-row">
+          <span class="detail-label">Last Updated:</span>
+          <span class="detail-value">{{ formatDate(selectedUser.updatedAt) }}</span>
+        </div>
+
+        @if (selectedUser.preferences) {
+          <div class="detail-section">
+            <h3>Preferences</h3>
+            <div class="detail-row">
+              <span class="detail-label">Email Notifications:</span>
+              <span class="detail-value">
+                {{ selectedUser.preferences.emailNotifications ? 'Enabled' : 'Disabled' }}
+              </span>
+            </div>
+            <div class="detail-row">
+              <span class="detail-label">Language:</span>
+              <span class="detail-value">{{ selectedUser.preferences.language }}</span>
+            </div>
+            <div class="detail-row">
+              <span class="detail-label">Timezone:</span>
+              <span class="detail-value">{{ selectedUser.preferences.timezone }}</span>
+            </div>
+          </div>
+        }
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn btn-secondary" (click)="closeUserModal()">Close</button>
+      </div>
+    </div>
+  </div>
+}
+
+<!-- Confirmation Dialog -->
+@if (showConfirmDialog) {
+  <div class="modal-overlay" (click)="closeConfirmDialog()">
+    <div class="modal-content confirm-dialog" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h2>Confirm Action</h2>
+      </div>
+
+      <div class="modal-body">
+        <p>{{ confirmMessage }}</p>
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn btn-secondary" (click)="closeConfirmDialog()">Cancel</button>
+        <button class="btn btn-danger" (click)="confirmDialogAction()">Confirm</button>
+      </div>
+    </div>
+  </div>
+}

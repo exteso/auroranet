@@ -22,6 +22,7 @@ export interface UserDocument {
   displayName?: string;
   avatarUrl?: string;
   phone?: string;
+  disabled?: boolean;
   preferences?: UserPreferences;
   createdAt: Date;
   updatedAt: Date;

@@ -35,6 +35,10 @@ export const routes: Routes = [
         loadComponent: () => import('./admin/dashboard/dashboard').then(m => m.Dashboard)
       },
       {
+        path: 'users',
+        loadComponent: () => import('./admin/user-management/user-management').then(m => m.UserManagement)
+      },
+      {
         path: 'events',
         loadComponent: () => import('./admin/events/events').then(m => m.Events)
       },

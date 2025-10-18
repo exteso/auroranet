@@ -5,6 +5,10 @@ import {
   getDoc,
   setDoc,
   updateDoc,
+  collection,
+  query,
+  getDocs,
+  QuerySnapshot,
   DocumentReference,
   DocumentSnapshot
 } from '@angular/fire/firestore';
@@ -106,6 +110,60 @@ export class UserService {
     return from(updateDoc(userRef, updateData)).pipe(
       catchError(error => {
         console.error('Error updating user profile:', error);
+        throw error;
+      })
+    );
+  }
+
+  /**
+   * Get all users from Firestore (Admin only)
+   * @returns Observable<UserDocument[]>
+   */
+  getAllUsers(): Observable<UserDocument[]> {
+    const usersRef = collection(this.firestore, 'users');
+    const usersQuery = query(usersRef);
+
+    return from(getDocs(usersQuery)).pipe(
+      map((querySnapshot: QuerySnapshot) => {
+        const users: UserDocument[] = [];
+        querySnapshot.forEach((doc) => {
+          users.push(doc.data() as UserDocument);
+        });
+        return users;
+      }),
+      catchError(error => {
+        console.error('Error getting all users:', error);
+        return of([]);
+      })
+    );
+  }
+
+  /**
+   * Update user role (Admin only)
+   * @param uid User ID
+   * @param newRole New role to assign
+   * @returns Observable<void>
+   */
+  updateUserRole(uid: string, newRole: UserRole): Observable<void> {
+    return this.updateUserProfile(uid, { role: newRole });
+  }
+
+  /**
+   * Disable or enable user account (Admin only)
+   * @param uid User ID
+   * @param disabled Whether to disable the account
+   * @returns Observable<void>
+   */
+  setUserDisabled(uid: string, disabled: boolean): Observable<void> {
+    const userRef = doc(this.firestore, `users/${uid}`);
+    const updateData = {
+      disabled,
+      updatedAt: new Date()
+    };
+
+    return from(updateDoc(userRef, updateData)).pipe(
+      catchError(error => {
+        console.error('Error updating user disabled status:', error);
         throw error;
       })
     );

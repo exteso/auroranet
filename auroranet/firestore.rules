@@ -26,7 +26,7 @@ service cloud.firestore {
     // Users collection rules
     match /users/{userId} {
       // Anyone authenticated can read their own user document
-      allow read: if isAuthenticated() && request.auth.uid == userId;
+      allow read: if isAuthenticated() && (request.auth.uid == userId || isAdmin());
 
       // Only the system can create user documents (via backend or during registration)
       // Users can be created during registration
@@ -36,11 +36,14 @@ service cloud.firestore {
       //              && request.resource.data.email == request.auth.token.email;
 
       // Users cannot update their own role, but can update other fields
-      allow update: if isAuthenticated() && request.auth.uid == userId
-                    && request.resource.data.role == resource.data.role;
+      allow update: if isAuthenticated() && ((request.auth.uid == userId
+                    && request.resource.data.role == resource.data.role) || isAdmin());
 
       // Only admins can delete user documents
       allow delete: if isAdmin();
+      
+      // Applies to queries and collection read requests
+      allow list: if isAdmin();
     }
 
     // Events collection rules
