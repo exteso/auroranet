@@ -12,6 +12,7 @@ import {
   DocumentReference,
   DocumentSnapshot
 } from '@angular/fire/firestore';
+import { Functions, httpsCallable } from '@angular/fire/functions';
 import { Observable, from, of } from 'rxjs';
 import { map, catchError } from 'rxjs/operators';
 import { UserDocument, UserRole } from '../models/user.model';
@@ -21,6 +22,7 @@ import { UserDocument, UserRole } from '../models/user.model';
 })
 export class UserService {
   private firestore: Firestore = inject(Firestore);
+  private functions: Functions = inject(Functions);
 
   /**
    * Create a new user document in Firestore
@@ -164,6 +166,58 @@ export class UserService {
     return from(updateDoc(userRef, updateData)).pipe(
       catchError(error => {
         console.error('Error updating user disabled status:', error);
+        throw error;
+      })
+    );
+  }
+
+  /**
+   * Create user with email via Cloud Function (Admin only)
+   * Uses Firebase Admin SDK to create user without signing in as them
+   * @param email User email
+   * @param password User password
+   * @param displayName User display name
+   * @param role User role
+   * @param phone Optional phone number
+   * @returns Observable with result
+   */
+  createUserWithEmailViaFunction(
+    email: string,
+    password: string,
+    displayName: string,
+    role: UserRole,
+    phone?: string
+  ): Observable<any> {
+    const createUserFn = httpsCallable(this.functions, 'createUserWithEmail');
+    return from(createUserFn({ email, password, displayName, role, phone })).pipe(
+      map((result: any) => result.data),
+      catchError(error => {
+        console.error('Error calling createUserWithEmail function:', error);
+        throw error;
+      })
+    );
+  }
+
+  /**
+   * Create user with phone via Cloud Function (Admin only)
+   * Uses Firebase Admin SDK to create user without signing in as them
+   * @param phoneNumber User phone number in E.164 format
+   * @param displayName User display name
+   * @param role User role
+   * @param password Optional password
+   * @returns Observable with result
+   */
+  createUserWithPhoneViaFunction(
+    phoneNumber: string,
+    displayName: string,
+    role: UserRole,
+    password?: string
+  ): Observable<any> {
+    const createUserFn = httpsCallable(this.functions, 'createUserWithPhone');
+    return from(createUserFn({ phoneNumber, displayName, role, password })).pipe(
+      map((result: any) => result.data),
+      catchError(error => {
+        console.error('Error calling createUserWithPhone function:', error);
         throw error;
       })
     );

@@ -208,4 +208,75 @@ export class AuthService {
     }
     this.confirmationResult = null;
   }
+
+  /**
+   * Admin: Create new user with email and password
+   * Creates both Firebase Auth account and Firestore user document
+   * @param email User email
+   * @param password User password
+   * @param role User role
+   * @param displayName Optional display name
+   * @returns Observable with UserCredential
+   */
+  adminCreateUserWithEmail(
+    email: string,
+    password: string,
+    role: UserRole = 'guest',
+    displayName?: string
+  ): Observable<UserCredential> {
+    return from(createUserWithEmailAndPassword(this.auth, email, password)).pipe(
+      switchMap(userCredential => {
+        // Create user document in Firestore
+        const userDoc = {
+          uid: userCredential.user.uid,
+          email,
+          role,
+          displayName: displayName || email.split('@')[0]
+        };
+
+        return this.userService.createUser(
+          userCredential.user.uid,
+          email,
+          role,
+          undefined
+        ).pipe(
+          switchMap(() => {
+            // Update display name if provided
+            if (displayName) {
+              return this.userService.updateUserProfile(userCredential.user.uid, { displayName }).pipe(
+                map(() => userCredential)
+              );
+            }
+            return from([userCredential]);
+          })
+        );
+      })
+    );
+  }
+
+  /**
+   * Admin: Create new user with phone number
+   * Note: This creates a user account but requires phone verification
+   * For admin creation without verification, use Firebase Admin SDK on backend
+   * @param phoneNumber Phone number in E.164 format
+   * @param role User role
+   * @param displayName Optional display name
+   * @returns Observable with ConfirmationResult for verification
+   */
+  adminCreateUserWithPhone(
+    phoneNumber: string,
+    role: UserRole = 'guest',
+    displayName?: string
+  ): Observable<ConfirmationResult> {
+    if (!this.recaptchaVerifier) {
+      throw new Error('reCAPTCHA verifier not initialized. Call setupRecaptcha() first.');
+    }
+
+    return from(signInWithPhoneNumber(this.auth, phoneNumber, this.recaptchaVerifier)).pipe(
+      map(confirmationResult => {
+        this.confirmationResult = confirmationResult;
+        return confirmationResult;
+      })
+    );
+  }
 }
