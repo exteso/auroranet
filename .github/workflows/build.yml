@@ -1,0 +1,27 @@
+name: Build after every commit
+
+on:
+  push:
+    branches:
+      - '**'  # Trigger on all branches
+
+jobs:
+  build-only:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: auroranet/package-lock.json
+
+      - name: Install dependencies
+        run: cd auroranet && npm ci
+
+      - name: Build project
+        run: cd auroranet && npm run build
