@@ -52,7 +52,7 @@ export class EventParticipants implements OnInit, OnDestroy {
 
   // Search and filter
   searchTerm = '';
-  filterStatus: ReservationStatus | 'ALL' = 'ALL';
+  filterStatus: ReservationStatus | 'ALL' = ReservationStatus.CONFIRMED;
   filterCheckIn: 'ALL' | 'CHECKED_IN' | 'NOT_CHECKED_IN' = 'ALL';
   filterPayment: PaymentStatus | 'ALL' = 'ALL';
 
